@@ -6,10 +6,10 @@ import {Dice} from "./Dice";
 import './App.css';
 import './Dice.css';
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, updateDoc } from "firebase/firestore";
 // import { getDatabase, ref, onValue} from "firebase/database";
 
-import { doc, setDoc, onSnapshot } from "firebase/firestore"; 
+import { doc, setDoc, onSnapshot, getDoc } from "firebase/firestore"; 
 import { getAnalytics } from "firebase/analytics";
 
 
@@ -19,17 +19,18 @@ const App = () =>{
   const [playerXPlaying, setPlayerxPlayer] = useState(true)
   const [check, setCheck] = useState(false)
   const [die, setDie] = useState(Math.floor(Math.random() * 6 + 1))
-
+  const IntialzeBoard = false; 
 
   const firebaseConfig = {
-    apiKey: "AIzaSyCOsWTZn_IZMdSrOsZCtmn2AkFQAVqZHac",
-    authDomain: "colttest-ab666.firebaseapp.com",
-    projectId: "colttest-ab666",
-    storageBucket: "colttest-ab666.appspot.com",
-    messagingSenderId: "865140778710",
-    appId: "1:865140778710:web:4e73aa58376514066a8b77",
-    measurementId: "G-JRBB84RCE6"
+    apiKey: "AIzaSyBkt0D-cnJzFByMFBh7_yrbeerM_-wA8pU",
+    authDomain: "coltbend-29196.firebaseapp.com",
+    projectId: "coltbend-29196",
+    storageBucket: "coltbend-29196.appspot.com",
+    messagingSenderId: "270225133744",
+    appId: "1:270225133744:web:70eab2be1f13fc0f32ab75",
+    measurementId: "G-5CV2GTKP3Q"
   };
+  
 
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
@@ -37,26 +38,41 @@ const App = () =>{
 
 
   useEffect ( () => {
-  const WriteData = async () =>{
-    await setDoc(doc(db, "Sessions", "234567890"), {
-      playerone: playerOne,
-      playertwo: playerTwo,
-      die: die,
-      finished: handleGameOver(), 
-      PlayeroneName:   "null", 
-      //TODO: 
-      //PlayertwoName: "null", // TODO: Get player name 
-
-    }, {merge:true});
-    console.log("Writing  data...");
+  const IntialzeBoard = async () =>{
+    const docRef = doc(db, "Sessions", "234567890");
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      setPlayerOneBoard(doc.data().playerone)
+      setPlayerTwoBoard(doc.data().playertwo)
+      setDie(doc.data().die)
+      setPlayerxPlayer(doc.data().playerXPlaying)
+      alert(playerXPlaying);
+      // setCheck(true);
+    } else {
+      // doc.data() will be undefined in this case
+      await setDoc(doc(db, "Sessions", "234567890"), {
+        playerone: playerOne,
+        playertwo: playerTwo,
+        die: die,
+        finished: handleGameOver(), 
+        PlayeroneName:  "ReadyPlayerOne", 
+        playerXPlaying: true
+        //TODO: 
+        //PlayertwoName: "null", // TODO: Get player name 
+  
+      });
+      console.log("Writing  data...");
+    } 
+  
 
   }
 
-  if (check === true){
-    WriteData(); 
-  }
 
-},[playerOne, playerTwo])
+    IntialzeBoard(); 
+  
+
+},[])
   
   
   useEffect(() => {
@@ -68,7 +84,7 @@ const App = () =>{
         setPlayerOneBoard(doc.data().playerone)
         setPlayerTwoBoard(doc.data().playertwo)
         setDie(doc.data().die)
-        setCheck(true);
+        setPlayerxPlayer(doc.data().playerXPlaying)
       }
   )
   }, [])
@@ -83,48 +99,78 @@ const App = () =>{
 
 
   const handleBoxClickPlayerOne = (indx) => {
-
+    //alert(playerXPlaying);
     const updateBoard = playerOne.map((value, index) => {
-      if (index === indx & playerXPlaying === true) {
+      if (index === indx && playerXPlaying === true) {
         update2(die, index);
-        setPlayerxPlayer(!playerXPlaying)
-        setDie(Math.floor(Math.random() * 6 + 1))
+        //setPlayerxPlayer(!playerXPlaying)
+        //setDie(Math.floor(Math.random() * 6 + 1))
         return die;
       } else {
         return value;
       }
     })
-    setPlayerOneBoard(sort(updateBoard));
-    setPlayerTwoBoard(sort(playerTwo))
+
+    if (playerXPlaying){ 
+    let diemove = Math.floor(Math.random() * 6 + 1); 
+    const Ref = doc(db, "Sessions", "234567890" );
+    updateDoc(  Ref, {
+      playerone: updateBoard,
+      playertwo: playerTwo,
+      playerXPlaying: false,  
+      die: diemove,
+    });
+  } 
     
   }
 
 
   const handleBoxClickPlayerTwo = (indx) => {
-
+    //alert(playerXPlaying);
     const updateBoard = playerTwo.map((value, index) => {
-      if (index === indx & playerXPlaying === false) {
+      if (index === indx && playerXPlaying === false) {
         update1(die, index)
-        setPlayerxPlayer(!playerXPlaying)
-        setDie(Math.floor(Math.random() * 6 + 1))
+       // setPlayerxPlayer(!playerXPlaying)
+      //  setDie(Math.floor(Math.random() * 6 + 1))
         
-        
-
         return die;
       } else {
         return value;
       }
     })
-    setPlayerOneBoard(sort(playerOne))
-    setPlayerTwoBoard(sort(updateBoard));
+
+    if (!playerXPlaying)
+    {
+    const  Ref = doc(db, "Sessions", "234567890" );
+    let diemove = Math.floor(Math.random() * 6 + 1); 
+
+    updateDoc(Ref, {
+      playerone: playerOne,
+      playertwo: updateBoard,
+      playerXPlaying: true, 
+      die: diemove
+      
+    });
+  }
+
 
   }
 
   const resetBoard = () => {
     
-    setPlayerOneBoard(Array(9).fill(null));
-    setPlayerTwoBoard(Array(9).fill(null));
-    setDie(Math.floor(Math.random() * 6 + 1))
+    // setPlayerOneBoard(Array(9).fill(null));
+    // setPlayerTwoBoard(Array(9).fill(null));
+    // setDie(Math.floor(Math.random() * 6 + 1))
+    const Ref = doc(db, "Sessions", "234567890" );
+    let diemove = Math.floor(Math.random() * 6 + 1); 
+    updateDoc(Ref, {
+      playerone: Array(9).fill(null),
+      playertwo: Array(9).fill(null),
+      die: diemove,
+      playerXPlaying: true
+      
+    });
+    
   }
 
   const points = (board, index) => {
